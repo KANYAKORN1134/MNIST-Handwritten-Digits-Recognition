@@ -1,0 +1,281 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "metadata": {
+    "cell_id": "00000-ce55c02f-9d4a-4edd-92ab-bb7edda64304",
+    "deepnote_to_be_reexecuted": false,
+    "source_hash": "d9c226d4",
+    "execution_start": 1636474835158,
+    "execution_millis": 6472,
+    "deepnote_cell_type": "code"
+   },
+   "source": "# set up\n\n# import tensorflow.compat.v1 as tf\n# tf.disable_v2_behavior()\n\nimport tensorflow as tf\nimport numpy as np\n# import matplotlib.pyplot as plt\n\nfrom tensorflow.keras.layers import Dense, Flatten\nfrom tensorflow.keras.models import Sequential\nfrom tensorflow.keras.utils import to_categorical\nfrom tensorflow.keras.initializers import Initializer as KerasInitializer\nfrom tensorflow.keras.datasets import mnist\nfrom tensorflow.keras.callbacks import Callback\nfrom tensorflow.keras import layers\nfrom tensorflow.keras import initializers\nfrom tensorflow.keras.layers import Conv2D, Lambda, MaxPooling2D\nfrom tensorflow.keras.layers import BatchNormalization\nfrom IPython.display import Image\nfrom tensorflow.keras.preprocessing.image import ImageDataGenerator\nPATH = \"/Users/Song/Desktop/Tensorflow codes/Pictures/\"",
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "metadata": {
+    "cell_id": "00005-f4853c47-1bc0-4525-a6fb-f476dd576107",
+    "deepnote_to_be_reexecuted": false,
+    "source_hash": "1a00f6f4",
+    "execution_start": 1636474841636,
+    "execution_millis": 501,
+    "deepnote_cell_type": "code"
+   },
+   "source": "# prepare dataset\n\n# MNIST dataset parameters\n\ninput_shape = 28 # input shape: 28 X 28 = 784\nnum_classes = 10 # total classes (0-9 digits)\n\n# import and load MNIST dataset, split between and test datasets\n\n(x_train, y_train), (x_test, y_test) = mnist.load_data()\n\n# normalize image pixcel values from [0, 255] to [0, 1]\n\nx_train, x_test = x_train / 255., x_test / 255.\n\n# convert class vectors into one-hot encoded format\n\ny_train = to_categorical(y_train)\ny_test = to_categorical(y_test)\n\n# inspect an random sample\n\nindex = 128\n\nprint(y_train[index])\nprint(y_train[index].shape)\nprint(y_test[index])\nprint(y_test[index].shape)\n\nx_train = x_train.reshape(-1,28,28,1)\nx_test = x_test.reshape(-1,28,28,1)\n\n# check the shape of MNIST images\n\n\nprint('MNIST dataset shapes:')\nprint('x_train: ' + str(x_train.shape))\nprint('y_train: ' + str(y_train.shape))\nprint('x_test: ' + str(x_test.shape))\nprint('y_test: ' + str(y_test.shape))",
+   "execution_count": null,
+   "outputs": [
+    {
+     "name": "stdout",
+     "text": "[0. 1. 0. 0. 0. 0. 0. 0. 0. 0.]\n(10,)\n[0. 0. 0. 0. 0. 0. 0. 0. 1. 0.]\n(10,)\nMNIST dataset shapes:\nx_train: (60000, 28, 28)\ny_train: (60000, 10)\nx_test: (10000, 28, 28, 1)\ny_test: (10000, 10)\n",
+     "output_type": "stream"
+    }
+   ]
+  },
+  {
+   "cell_type": "code",
+   "metadata": {
+    "cell_id": "00006-c0c44f22-705d-4ae1-b8ef-12505109bf1e",
+    "deepnote_to_be_reexecuted": false,
+    "source_hash": "295871da",
+    "execution_start": 1636474842486,
+    "execution_millis": 0,
+    "deepnote_cell_type": "code"
+   },
+   "source": "# training parameters\n\nbuffer_size = 100000\nlearning_rate = 0.1\ntraining_epochs = 50\nbatch_size = 256\npatience = 10",
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "metadata": {
+    "tags": [],
+    "cell_id": "00004-77c04255-e75a-4d1f-95d0-72fd0095ee71",
+    "deepnote_to_be_reexecuted": false,
+    "source_hash": "54a7d39d",
+    "execution_start": 1636474842487,
+    "execution_millis": 0,
+    "deepnote_cell_type": "code"
+   },
+   "source": "callback = tf.keras.callbacks.EarlyStopping(monitor = 'val_loss', patience = patience, verbose = 0)",
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "metadata": {
+    "cell_id": "00010-0fb45cb3-7813-44a6-a448-f124db109606",
+    "deepnote_to_be_reexecuted": false,
+    "source_hash": "d5d75181",
+    "execution_start": 1636474842487,
+    "execution_millis": 3491,
+    "deepnote_cell_type": "code"
+   },
+   "source": "model=Sequential()\n\n#model.add(Lambda(standardize,input_shape=(28,28,1)))    \nmodel.add(Conv2D(filters=64, kernel_size = (3,3), activation=\"relu\", input_shape=(28,28,1)))\nmodel.add(Conv2D(filters=64, kernel_size = (3,3), activation=\"relu\"))\n\nmodel.add(MaxPooling2D(pool_size=(2,2)))\nmodel.add(BatchNormalization())\nmodel.add(Conv2D(filters=128, kernel_size = (3,3), activation=\"relu\"))\nmodel.add(Conv2D(filters=128, kernel_size = (3,3), activation=\"relu\"))\n\nmodel.add(MaxPooling2D(pool_size=(2,2)))\nmodel.add(BatchNormalization())    \nmodel.add(Conv2D(filters=256, kernel_size = (3,3), activation=\"relu\"))\n    \nmodel.add(MaxPooling2D(pool_size=(2,2)))\n    \nmodel.add(Flatten())\nmodel.add(BatchNormalization())\nmodel.add(Dense(512,activation=\"relu\"))\n    \nmodel.add(Dense(10,activation=\"softmax\"))\n    \nmodel.summary()",
+   "execution_count": null,
+   "outputs": [
+    {
+     "name": "stdout",
+     "text": "Model: \"sequential\"\n_________________________________________________________________\nLayer (type)                 Output Shape              Param #   \n=================================================================\nconv2d (Conv2D)              (None, 26, 26, 64)        640       \n_________________________________________________________________\nconv2d_1 (Conv2D)            (None, 24, 24, 64)        36928     \n_________________________________________________________________\nmax_pooling2d (MaxPooling2D) (None, 12, 12, 64)        0         \n_________________________________________________________________\nbatch_normalization (BatchNo (None, 12, 12, 64)        256       \n_________________________________________________________________\nconv2d_2 (Conv2D)            (None, 10, 10, 128)       73856     \n_________________________________________________________________\nconv2d_3 (Conv2D)            (None, 8, 8, 128)         147584    \n_________________________________________________________________\nmax_pooling2d_1 (MaxPooling2 (None, 4, 4, 128)         0         \n_________________________________________________________________\nbatch_normalization_1 (Batch (None, 4, 4, 128)         512       \n_________________________________________________________________\nconv2d_4 (Conv2D)            (None, 2, 2, 256)         295168    \n_________________________________________________________________\nmax_pooling2d_2 (MaxPooling2 (None, 1, 1, 256)         0         \n_________________________________________________________________\nflatten (Flatten)            (None, 256)               0         \n_________________________________________________________________\nbatch_normalization_2 (Batch (None, 256)               1024      \n_________________________________________________________________\ndense (Dense)                (None, 512)               131584    \n_________________________________________________________________\ndense_1 (Dense)              (None, 10)                5130      \n=================================================================\nTotal params: 692,682\nTrainable params: 691,786\nNon-trainable params: 896\n_________________________________________________________________\n",
+     "output_type": "stream"
+    }
+   ]
+  },
+  {
+   "cell_type": "code",
+   "metadata": {
+    "cell_id": "00011-76a9b946-a5d4-43a9-99e7-c0810523cf38",
+    "deepnote_to_be_reexecuted": false,
+    "source_hash": "9970782",
+    "execution_start": 1636474845982,
+    "execution_millis": 1,
+    "deepnote_cell_type": "code"
+   },
+   "source": "# optimizer\noptimizer = tf.keras.optimizers.SGD(learning_rate = learning_rate)",
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "metadata": {
+    "cell_id": "00013-70854048-a791-4efe-ac02-6eb40b5cf070",
+    "deepnote_to_be_reexecuted": false,
+    "source_hash": "51b5a2ae",
+    "execution_start": 1636474845997,
+    "execution_millis": 82,
+    "deepnote_cell_type": "code"
+   },
+   "source": "# Data augmentation to prevent overfitting\n\ndatagen = ImageDataGenerator(\n        featurewise_center=False,  # set input mean to 0 over the dataset\n        samplewise_center=False,  # set each sample mean to 0\n        featurewise_std_normalization=False,  # divide inputs by std of the dataset\n        samplewise_std_normalization=False,  # divide each input by its std\n        zca_whitening=False,  # apply ZCA whitening\n        rotation_range=10,  # randomly rotate images in the range (degrees, 0 to 180)\n        zoom_range = 0.1, # Randomly zoom image \n        width_shift_range=0.1,  # randomly shift images horizontally (fraction of total width)\n        height_shift_range=0.1,  # randomly shift images vertically (fraction of total height)\n        horizontal_flip=False,  # randomly flip images\n        vertical_flip=False)  # randomly flip images\n\n\n#datagen.fit(x_train)\ntrain_gen = datagen.flow(x_train, y_train, batch_size=64)\ntest_gen = datagen.flow(x_test, y_test, batch_size=64)",
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "metadata": {
+    "scrolled": true,
+    "cell_id": "00014-2ffb3887-8eb6-424d-ad02-233f0ad39505",
+    "deepnote_to_be_reexecuted": false,
+    "source_hash": "d73b8264",
+    "execution_start": 1636474846083,
+    "execution_millis": 4979856,
+    "deepnote_cell_type": "code"
+   },
+   "source": "# Fit the model\nhistory = model.fit_generator(train_gen, \n                              epochs = 50, \n                              steps_per_epoch = X_train.shape[0] // batch_size,\n                              validation_data = test_gen,\n                              validation_steps = x_test.shape[0] // batch_size)",
+   "execution_count": null,
+   "outputs": [
+    {
+     "name": "stdout",
+     "text": "Epoch 1/50\n/shared-libs/python3.7/py/lib/python3.7/site-packages/tensorflow/python/keras/engine/training.py:1844: UserWarning: `Model.fit_generator` is deprecated and will be removed in a future version. Please use `Model.fit`, which supports generators.\n  warnings.warn('`Model.fit_generator` is deprecated and '\n234/234 [==============================] - 105s 446ms/step - loss: 0.4732 - accuracy: 0.8487 - val_loss: 4.5596 - val_accuracy: 0.1066\nEpoch 2/50\n234/234 [==============================] - 100s 426ms/step - loss: 0.1079 - accuracy: 0.9667 - val_loss: 1.4939 - val_accuracy: 0.4988\nEpoch 3/50\n234/234 [==============================] - 99s 423ms/step - loss: 0.0782 - accuracy: 0.9752 - val_loss: 0.0990 - val_accuracy: 0.9683\nEpoch 4/50\n234/234 [==============================] - 104s 444ms/step - loss: 0.0769 - accuracy: 0.9785 - val_loss: 0.0509 - val_accuracy: 0.9808\nEpoch 5/50\n234/234 [==============================] - 101s 430ms/step - loss: 0.0644 - accuracy: 0.9807 - val_loss: 0.0525 - val_accuracy: 0.9852\nEpoch 6/50\n234/234 [==============================] - 102s 438ms/step - loss: 0.0669 - accuracy: 0.9799 - val_loss: 0.0729 - val_accuracy: 0.9764\nEpoch 7/50\n234/234 [==============================] - 99s 423ms/step - loss: 0.0574 - accuracy: 0.9829 - val_loss: 0.0722 - val_accuracy: 0.9796\nEpoch 8/50\n234/234 [==============================] - 103s 439ms/step - loss: 0.0443 - accuracy: 0.9849 - val_loss: 0.0683 - val_accuracy: 0.9824\nEpoch 9/50\n234/234 [==============================] - 100s 426ms/step - loss: 0.0400 - accuracy: 0.9883 - val_loss: 0.0416 - val_accuracy: 0.9868\nEpoch 10/50\n234/234 [==============================] - 100s 426ms/step - loss: 0.0540 - accuracy: 0.9852 - val_loss: 0.0569 - val_accuracy: 0.9848\nEpoch 11/50\n234/234 [==============================] - 105s 447ms/step - loss: 0.0464 - accuracy: 0.9873 - val_loss: 0.0657 - val_accuracy: 0.9836\nEpoch 12/50\n234/234 [==============================] - 98s 419ms/step - loss: 0.0442 - accuracy: 0.9869 - val_loss: 0.0487 - val_accuracy: 0.9812\nEpoch 13/50\n234/234 [==============================] - 98s 420ms/step - loss: 0.0433 - accuracy: 0.9865 - val_loss: 0.0404 - val_accuracy: 0.9856\nEpoch 14/50\n234/234 [==============================] - 98s 419ms/step - loss: 0.0444 - accuracy: 0.9879 - val_loss: 0.0425 - val_accuracy: 0.9880\nEpoch 15/50\n234/234 [==============================] - 102s 437ms/step - loss: 0.0451 - accuracy: 0.9867 - val_loss: 0.0402 - val_accuracy: 0.9896\nEpoch 16/50\n234/234 [==============================] - 99s 422ms/step - loss: 0.0426 - accuracy: 0.9881 - val_loss: 0.0525 - val_accuracy: 0.9844\nEpoch 17/50\n234/234 [==============================] - 99s 423ms/step - loss: 0.0337 - accuracy: 0.9893 - val_loss: 0.0660 - val_accuracy: 0.9828\nEpoch 18/50\n234/234 [==============================] - 98s 419ms/step - loss: 0.0453 - accuracy: 0.9862 - val_loss: 0.0246 - val_accuracy: 0.9912\nEpoch 19/50\n234/234 [==============================] - 99s 425ms/step - loss: 0.0376 - accuracy: 0.9885 - val_loss: 0.0241 - val_accuracy: 0.9936\nEpoch 20/50\n234/234 [==============================] - 98s 420ms/step - loss: 0.0433 - accuracy: 0.9879 - val_loss: 0.0234 - val_accuracy: 0.9924\nEpoch 21/50\n234/234 [==============================] - 97s 415ms/step - loss: 0.0338 - accuracy: 0.9903 - val_loss: 0.0684 - val_accuracy: 0.9820\nEpoch 22/50\n234/234 [==============================] - 97s 415ms/step - loss: 0.0288 - accuracy: 0.9907 - val_loss: 0.0456 - val_accuracy: 0.9880\nEpoch 23/50\n234/234 [==============================] - 99s 425ms/step - loss: 0.0398 - accuracy: 0.9880 - val_loss: 0.0362 - val_accuracy: 0.9924\nEpoch 24/50\n234/234 [==============================] - 104s 446ms/step - loss: 0.0370 - accuracy: 0.9890 - val_loss: 0.0306 - val_accuracy: 0.9908\nEpoch 25/50\n234/234 [==============================] - 100s 429ms/step - loss: 0.0291 - accuracy: 0.9910 - val_loss: 0.0375 - val_accuracy: 0.9904\nEpoch 26/50\n234/234 [==============================] - 100s 426ms/step - loss: 0.0315 - accuracy: 0.9918 - val_loss: 0.0416 - val_accuracy: 0.9876\nEpoch 27/50\n234/234 [==============================] - 101s 433ms/step - loss: 0.0314 - accuracy: 0.9898 - val_loss: 0.0421 - val_accuracy: 0.9876\nEpoch 28/50\n234/234 [==============================] - 99s 421ms/step - loss: 0.0329 - accuracy: 0.9906 - val_loss: 0.0369 - val_accuracy: 0.9900\nEpoch 29/50\n234/234 [==============================] - 102s 434ms/step - loss: 0.0302 - accuracy: 0.9908 - val_loss: 0.0188 - val_accuracy: 0.9944\nEpoch 30/50\n234/234 [==============================] - 99s 425ms/step - loss: 0.0296 - accuracy: 0.9914 - val_loss: 0.0215 - val_accuracy: 0.9924\nEpoch 31/50\n234/234 [==============================] - 100s 426ms/step - loss: 0.0240 - accuracy: 0.9924 - val_loss: 0.0369 - val_accuracy: 0.9896\nEpoch 32/50\n234/234 [==============================] - 98s 421ms/step - loss: 0.0278 - accuracy: 0.9912 - val_loss: 0.0192 - val_accuracy: 0.9944\nEpoch 33/50\n234/234 [==============================] - 99s 425ms/step - loss: 0.0241 - accuracy: 0.9925 - val_loss: 0.0394 - val_accuracy: 0.9896\nEpoch 34/50\n234/234 [==============================] - 98s 417ms/step - loss: 0.0278 - accuracy: 0.9911 - val_loss: 0.0359 - val_accuracy: 0.9888\nEpoch 35/50\n234/234 [==============================] - 97s 416ms/step - loss: 0.0233 - accuracy: 0.9927 - val_loss: 0.0279 - val_accuracy: 0.9916\nEpoch 36/50\n234/234 [==============================] - 99s 422ms/step - loss: 0.0215 - accuracy: 0.9932 - val_loss: 0.0256 - val_accuracy: 0.9920\nEpoch 37/50\n234/234 [==============================] - 97s 415ms/step - loss: 0.0296 - accuracy: 0.9914 - val_loss: 0.0310 - val_accuracy: 0.9912\nEpoch 38/50\n234/234 [==============================] - 97s 415ms/step - loss: 0.0222 - accuracy: 0.9938 - val_loss: 0.0163 - val_accuracy: 0.9932\nEpoch 39/50\n234/234 [==============================] - 97s 414ms/step - loss: 0.0239 - accuracy: 0.9900 - val_loss: 0.0341 - val_accuracy: 0.9876\nEpoch 40/50\n234/234 [==============================] - 97s 415ms/step - loss: 0.0298 - accuracy: 0.9908 - val_loss: 0.0318 - val_accuracy: 0.9900\nEpoch 41/50\n234/234 [==============================] - 102s 437ms/step - loss: 0.0200 - accuracy: 0.9927 - val_loss: 0.0256 - val_accuracy: 0.9924\nEpoch 42/50\n234/234 [==============================] - 104s 447ms/step - loss: 0.0238 - accuracy: 0.9923 - val_loss: 0.0303 - val_accuracy: 0.9888\nEpoch 43/50\n234/234 [==============================] - 99s 423ms/step - loss: 0.0218 - accuracy: 0.9930 - val_loss: 0.0371 - val_accuracy: 0.9884\nEpoch 44/50\n234/234 [==============================] - 97s 415ms/step - loss: 0.0231 - accuracy: 0.9928 - val_loss: 0.0304 - val_accuracy: 0.9900\nEpoch 45/50\n234/234 [==============================] - 98s 420ms/step - loss: 0.0221 - accuracy: 0.9929 - val_loss: 0.0287 - val_accuracy: 0.9924\nEpoch 46/50\n234/234 [==============================] - 99s 422ms/step - loss: 0.0221 - accuracy: 0.9928 - val_loss: 0.0211 - val_accuracy: 0.9932\nEpoch 47/50\n234/234 [==============================] - 97s 413ms/step - loss: 0.0205 - accuracy: 0.9929 - val_loss: 0.0380 - val_accuracy: 0.9900\nEpoch 48/50\n234/234 [==============================] - 99s 424ms/step - loss: 0.0227 - accuracy: 0.9928 - val_loss: 0.0317 - val_accuracy: 0.9912\nEpoch 49/50\n234/234 [==============================] - 98s 421ms/step - loss: 0.0231 - accuracy: 0.9938 - val_loss: 0.0312 - val_accuracy: 0.9912\nEpoch 50/50\n234/234 [==============================] - 99s 423ms/step - loss: 0.0278 - accuracy: 0.9908 - val_loss: 0.0197 - val_accuracy: 0.9956\n",
+     "output_type": "stream"
+    }
+   ]
+  },
+  {
+   "cell_type": "code",
+   "metadata": {
+    "cell_id": "00015-f159347b-299d-497a-a053-709c530a3aef",
+    "deepnote_to_be_reexecuted": false,
+    "source_hash": "bb4d5b8e",
+    "execution_start": 1636479825949,
+    "execution_millis": 12547,
+    "deepnote_cell_type": "code"
+   },
+   "source": "# evaluate the trained model\n\nscore = model.evaluate(x_test, y_test, verbose = 0)\nprint(\"test loss:\", score[0])\nprint(\"test accuracy:\", score[1])",
+   "execution_count": null,
+   "outputs": [
+    {
+     "name": "stdout",
+     "text": "test loss: 0.016430335119366646\ntest accuracy: 0.9955000281333923\n",
+     "output_type": "stream"
+    }
+   ]
+  },
+  {
+   "cell_type": "code",
+   "metadata": {
+    "cell_id": "00016-9f8712a7-691d-4680-969c-a7a638659752",
+    "deepnote_to_be_reexecuted": false,
+    "source_hash": "7fdd285a",
+    "execution_start": 1636479838502,
+    "execution_millis": 12490,
+    "deepnote_cell_type": "code"
+   },
+   "source": "# make predictions: it is the prediction of each test sample\n\npredictions = model.predict(x_test)\npredictions = np.argmax(predictions, axis = 1)\nprint(predictions)",
+   "execution_count": null,
+   "outputs": [
+    {
+     "name": "stdout",
+     "text": "[7 2 1 ... 4 5 6]\n",
+     "output_type": "stream"
+    }
+   ]
+  },
+  {
+   "cell_type": "code",
+   "metadata": {
+    "tags": [],
+    "cell_id": "00011-0da8b9ae-4f4c-482d-b2df-1f67abed24df",
+    "deepnote_to_be_reexecuted": false,
+    "source_hash": "1f939801",
+    "execution_start": 1636480613303,
+    "execution_millis": 13,
+    "deepnote_cell_type": "code"
+   },
+   "source": "model.save('saved_model_acc995.h5')",
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "metadata": {
+    "tags": [],
+    "cell_id": "00012-7fed88c4-b710-4e9d-a68b-fa5cd925c5c5",
+    "deepnote_to_be_reexecuted": false,
+    "source_hash": "49a410ed",
+    "execution_start": 1636480343281,
+    "execution_millis": 1036,
+    "deepnote_cell_type": "code"
+   },
+   "source": "model = tf.keras.models.load_model(\"/work/62011134_Kanyakorn.h5\")",
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "metadata": {
+    "tags": [],
+    "cell_id": "00013-51dcdb0b-d2df-4258-b296-c5831f5e2f18",
+    "deepnote_to_be_reexecuted": false,
+    "source_hash": "bb4d5b8e",
+    "execution_start": 1636480345244,
+    "execution_millis": 11774,
+    "deepnote_cell_type": "code"
+   },
+   "source": "# evaluate the trained model\n\nscore = model.evaluate(x_test, y_test, verbose = 0)\nprint(\"test loss:\", score[0])\nprint(\"test accuracy:\", score[1])",
+   "execution_count": null,
+   "outputs": [
+    {
+     "name": "stdout",
+     "text": "test loss: 0.016430335119366646\ntest accuracy: 0.9955000281333923\n",
+     "output_type": "stream"
+    }
+   ]
+  },
+  {
+   "cell_type": "code",
+   "metadata": {
+    "tags": [],
+    "cell_id": "00014-a32a7316-3625-436b-b795-2cab43be989f",
+    "deepnote_to_be_reexecuted": false,
+    "source_hash": "7fdd285a",
+    "execution_start": 1636480357022,
+    "execution_millis": 11596,
+    "deepnote_cell_type": "code"
+   },
+   "source": "# make predictions: it is the prediction of each test sample\n\npredictions = model.predict(x_test)\npredictions = np.argmax(predictions, axis = 1)\nprint(predictions)",
+   "execution_count": null,
+   "outputs": [
+    {
+     "name": "stdout",
+     "text": "[7 2 1 ... 4 5 6]\n",
+     "output_type": "stream"
+    }
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "source": "<a style='text-decoration:none;line-height:16px;display:flex;color:#5B5B62;padding:10px;justify-content:end;' href='https://deepnote.com?utm_source=created-in-deepnote-cell&projectId=4a5eb7c8-dcf2-4b88-b8eb-d1931de0d517' target=\"_blank\">\n<img alt='Created in deepnote.com' style='display:inline;max-height:16px;margin:0px;margin-right:7.5px;' src='data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB3aWR0aD0iODBweCIgaGVpZ2h0PSI4MHB4IiB2aWV3Qm94PSIwIDAgODAgODAiIHZlcnNpb249IjEuMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayI+CiAgICA8IS0tIEdlbmVyYXRvcjogU2tldGNoIDU0LjEgKDc2NDkwKSAtIGh0dHBzOi8vc2tldGNoYXBwLmNvbSAtLT4KICAgIDx0aXRsZT5Hcm91cCAzPC90aXRsZT4KICAgIDxkZXNjPkNyZWF0ZWQgd2l0aCBTa2V0Y2guPC9kZXNjPgogICAgPGcgaWQ9IkxhbmRpbmciIHN0cm9rZT0ibm9uZSIgc3Ryb2tlLXdpZHRoPSIxIiBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPgogICAgICAgIDxnIGlkPSJBcnRib2FyZCIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTEyMzUuMDAwMDAwLCAtNzkuMDAwMDAwKSI+CiAgICAgICAgICAgIDxnIGlkPSJHcm91cC0zIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxMjM1LjAwMDAwMCwgNzkuMDAwMDAwKSI+CiAgICAgICAgICAgICAgICA8cG9seWdvbiBpZD0iUGF0aC0yMCIgZmlsbD0iIzAyNjVCNCIgcG9pbnRzPSIyLjM3NjIzNzYyIDgwIDM4LjA0NzY2NjcgODAgNTcuODIxNzgyMiA3My44MDU3NTkyIDU3LjgyMTc4MjIgMzIuNzU5MjczOSAzOS4xNDAyMjc4IDMxLjY4MzE2ODMiPjwvcG9seWdvbj4KICAgICAgICAgICAgICAgIDxwYXRoIGQ9Ik0zNS4wMDc3MTgsODAgQzQyLjkwNjIwMDcsNzYuNDU0OTM1OCA0Ny41NjQ5MTY3LDcxLjU0MjI2NzEgNDguOTgzODY2LDY1LjI2MTk5MzkgQzUxLjExMjI4OTksNTUuODQxNTg0MiA0MS42NzcxNzk1LDQ5LjIxMjIyODQgMjUuNjIzOTg0Niw0OS4yMTIyMjg0IEMyNS40ODQ5Mjg5LDQ5LjEyNjg0NDggMjkuODI2MTI5Niw0My4yODM4MjQ4IDM4LjY0NzU4NjksMzEuNjgzMTY4MyBMNzIuODcxMjg3MSwzMi41NTQ0MjUgTDY1LjI4MDk3Myw2Ny42NzYzNDIxIEw1MS4xMTIyODk5LDc3LjM3NjE0NCBMMzUuMDA3NzE4LDgwIFoiIGlkPSJQYXRoLTIyIiBmaWxsPSIjMDAyODY4Ij48L3BhdGg+CiAgICAgICAgICAgICAgICA8cGF0aCBkPSJNMCwzNy43MzA0NDA1IEwyNy4xMTQ1MzcsMC4yNTcxMTE0MzYgQzYyLjM3MTUxMjMsLTEuOTkwNzE3MDEgODAsMTAuNTAwMzkyNyA4MCwzNy43MzA0NDA1IEM4MCw2NC45NjA0ODgyIDY0Ljc3NjUwMzgsNzkuMDUwMzQxNCAzNC4zMjk1MTEzLDgwIEM0Ny4wNTUzNDg5LDc3LjU2NzA4MDggNTMuNDE4MjY3Nyw3MC4zMTM2MTAzIDUzLjQxODI2NzcsNTguMjM5NTg4NSBDNTMuNDE4MjY3Nyw0MC4xMjg1NTU3IDM2LjMwMzk1NDQsMzcuNzMwNDQwNSAyNS4yMjc0MTcsMzcuNzMwNDQwNSBDMTcuODQzMDU4NiwzNy43MzA0NDA1IDkuNDMzOTE5NjYsMzcuNzMwNDQwNSAwLDM3LjczMDQ0MDUgWiIgaWQ9IlBhdGgtMTkiIGZpbGw9IiMzNzkzRUYiPjwvcGF0aD4KICAgICAgICAgICAgPC9nPgogICAgICAgIDwvZz4KICAgIDwvZz4KPC9zdmc+' > </img>\nCreated in <span style='font-weight:600;margin-left:4px;'>Deepnote</span></a>",
+   "metadata": {
+    "tags": [],
+    "created_in_deepnote_cell": true,
+    "deepnote_cell_type": "markdown"
+   }
+  }
+ ],
+ "nbformat": 4,
+ "nbformat_minor": 5,
+ "metadata": {
+  "kernelspec": {
+   "display_name": "test",
+   "language": "python",
+   "name": "test"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.7.10"
+  },
+  "deepnote_notebook_id": "32ff0323-06da-41ef-a96f-9d37843fa62e",
+  "deepnote": {},
+  "deepnote_execution_queue": []
+ }
+}
